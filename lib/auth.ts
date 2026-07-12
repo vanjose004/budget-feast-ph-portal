@@ -3,8 +3,8 @@ export const SESSION_COOKIE_VALUE = 'authenticated'
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 7 // 7 days
 
 export const CREDENTIALS = {
-  username: 'budgetfeastph',
-  password: 'bfph2026admin',
+  username: 'vanjose004',
+  password: 'Godprovides010496!',
 }
 
 export function isValidCredentials(username: string, password: string) {
