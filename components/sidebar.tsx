@@ -4,6 +4,7 @@ import { LayoutDashboard, BookOpen, Users, Calendar, Wallet, Settings, ChefHat, 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { LogoutButton } from '@/components/auth/logout-button'
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -58,14 +59,17 @@ function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () 
 function Footer() {
   return (
     <div className="border-t border-sidebar-border p-6">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent">
-          <span className="text-sm font-semibold text-primary">JD</span>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent">
+            <span className="text-sm font-semibold text-primary">JD</span>
+          </div>
+          <div className="text-sm">
+            <p className="font-medium text-primary-foreground">John Doe</p>
+            <p className="text-xs text-accent opacity-75">Owner</p>
+          </div>
         </div>
-        <div className="text-sm">
-          <p className="font-medium text-primary-foreground">John Doe</p>
-          <p className="text-xs text-accent opacity-75">Owner</p>
-        </div>
+        <LogoutButton />
       </div>
     </div>
   )

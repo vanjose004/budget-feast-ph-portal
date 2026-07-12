@@ -1,8 +1,9 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -50,6 +51,48 @@ export function BookingForm({
   const [isPending, startTransition] = useTransition()
   const [form, setForm] = useState<BookingInput>(initialData ?? emptyForm)
 
+  const draftKey = mode === 'create' ? 'booking-draft:new' : `booking-draft:edit:${bookingId}`
+  const hasLoadedDraft = useRef(false)
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null)
+  const [showSaved, setShowSaved] = useState(false)
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem(draftKey)
+    if (saved) {
+      try {
+        setForm(JSON.parse(saved))
+      } catch {
+        window.localStorage.removeItem(draftKey)
+      }
+    }
+    hasLoadedDraft.current = true
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    if (!hasLoadedDraft.current) return
+    const timeout = setTimeout(() => {
+      window.localStorage.setItem(draftKey, JSON.stringify(form))
+      setLastSavedAt(Date.now())
+    }, 500)
+    return () => clearTimeout(timeout)
+  }, [form, draftKey])
+
+  useEffect(() => {
+    if (lastSavedAt === null) return
+    setShowSaved(true)
+    const hide = setTimeout(() => setShowSaved(false), 2000)
+    return () => clearTimeout(hide)
+  }, [lastSavedAt])
+
+  function clearDraft() {
+    window.localStorage.removeItem(draftKey)
+    setForm(initialData ?? emptyForm)
+    setLastSavedAt(null)
+    setShowSaved(false)
+    toast.success('Draft cleared.')
+  }
+
   const balance = Math.max(form.total_amount - form.amount_paid, 0)
   const paymentStatus = useMemo(
     () => computePaymentStatus(form.total_amount, form.amount_paid),
@@ -83,10 +126,12 @@ export function BookingForm({
       try {
         if (mode === 'create') {
           const result = await createBooking(form)
+          window.localStorage.removeItem(draftKey)
           toast.success('Booking created.')
           router.push(`/bookings/${result.id}`)
         } else if (bookingId) {
           await updateBooking(bookingId, form)
+          window.localStorage.removeItem(draftKey)
           toast.success('Booking updated.')
           router.push(`/bookings/${bookingId}`)
         }
@@ -293,13 +338,28 @@ export function BookingForm({
         />
       </section>
 
-      <div className="flex justify-end gap-3">
-        <Button type="button" variant="outline" onClick={() => router.back()} disabled={isPending}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={isPending}>
-          {isPending ? 'Saving...' : mode === 'create' ? 'Create Booking' : 'Save Changes'}
-        </Button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span
+            className={`flex items-center gap-1.5 text-xs text-muted-foreground transition-opacity ${
+              showSaved ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            <Check className="h-3.5 w-3.5" />
+            Draft saved
+          </span>
+          <Button type="button" variant="ghost" size="sm" onClick={clearDraft} disabled={isPending}>
+            Clear Draft
+          </Button>
+        </div>
+        <div className="flex gap-3">
+          <Button type="button" variant="outline" onClick={() => router.back()} disabled={isPending}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isPending}>
+            {isPending ? 'Saving...' : mode === 'create' ? 'Create Booking' : 'Save Changes'}
+          </Button>
+        </div>
       </div>
     </form>
   )
