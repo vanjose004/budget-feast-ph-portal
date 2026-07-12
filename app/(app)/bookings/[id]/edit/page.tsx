@@ -11,6 +11,7 @@ function toBookingInput(booking: Booking): BookingInput {
     client_name: booking.client_name,
     contact_number: booking.contact_number ?? '',
     facebook: booking.facebook ?? '',
+    client_address: booking.client_address ?? '',
     event_type: booking.event_type ?? '',
     event_date: booking.event_date ?? '',
     buffet_time: booking.buffet_time ?? '',

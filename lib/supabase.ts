@@ -10,6 +10,7 @@ export interface Booking {
   client_name: string
   contact_number: string | null
   facebook: string | null
+  client_address: string | null
   event_type: string | null
   event_date: string | null
   buffet_time: string | null

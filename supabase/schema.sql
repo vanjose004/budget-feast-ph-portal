@@ -3,6 +3,7 @@ CREATE TABLE bookings (
   client_name text NOT NULL,
   contact_number text,
   facebook text,
+  client_address text,
   event_type text,
   event_date date,
   buffet_time text,
@@ -62,3 +63,5 @@ INSERT INTO settings (key, value) VALUES
 ('package_starter_price', '18000'),
 ('package_classic_price', '22000'),
 ('package_grand_price', '27000');
+
+ALTER TABLE bookings ADD COLUMN client_address text;

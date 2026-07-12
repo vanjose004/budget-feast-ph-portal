@@ -57,3 +57,105 @@ export function computePaymentStatus(totalAmount: number, amountPaid: number): '
   if (totalAmount > 0 && amountPaid >= totalAmount) return 'Paid'
   return 'Partial'
 }
+
+export const FOOD_ADD_ONS = [
+  { key: 'beef', label: 'Beef dish', pricePerPax: 70 },
+  { key: 'pork', label: 'Pork dish', pricePerPax: 60 },
+  { key: 'pastaChickenFish', label: 'Pasta/Chicken/Fish dish', pricePerPax: 50 },
+  { key: 'extraDessert', label: 'Extra Dessert', pricePerPax: 20 },
+] as const
+
+export type FoodAddOnKey = (typeof FOOD_ADD_ONS)[number]['key']
+
+export const EQUIPMENT_ADD_ONS = [
+  { key: 'singleChafing', label: 'Single Chafing Dish', price: 100 },
+  { key: 'doubleChafing', label: 'Double Chafing Dish', price: 180 },
+] as const
+
+export type EquipmentAddOnKey = (typeof EQUIPMENT_ADD_ONS)[number]['key']
+
+export const STYLING_ADD_ONS = [
+  { key: 'birthdayChristening', label: 'Birthday/Christening Package', price: 3500 },
+  { key: 'elegantCouch', label: '+ Elegant Couch', price: 500 },
+  { key: 'entranceArchBalloons', label: '+ Entrance Arch Balloons', price: 500 },
+  { key: 'debutStyling', label: 'Debut Styling Package', price: 7500 },
+  { key: 'weddingStyling', label: 'Wedding Styling Package', price: 10000 },
+] as const
+
+export type StylingAddOnKey = (typeof STYLING_ADD_ONS)[number]['key']
+
+export const SUPPLIER_ADD_ONS = [
+  { key: 'otdCoordinator', label: 'Event OTD Coordinator', price: 8000 },
+  { key: 'cake1Tier', label: 'Cake 1 Tier', price: 3500 },
+  { key: 'cake2Tier', label: 'Cake 2 Tier', price: 6000 },
+  { key: 'soundsLights', label: 'Sounds & Lights', price: 6000 },
+  { key: 'photographer', label: 'Photographer', price: 5000 },
+  { key: 'photobooth', label: 'Photobooth 2hrs', price: 4000 },
+  { key: 'hostEmcee', label: 'Host/Emcee Wedding & Debut', price: 5000 },
+  { key: 'clown', label: 'Clown', price: 4000 },
+] as const
+
+export type SupplierAddOnKey = (typeof SUPPLIER_ADD_ONS)[number]['key']
+
+export interface AddOnsState {
+  food: Record<FoodAddOnKey, number>
+  equipment: Record<EquipmentAddOnKey, number>
+  styling: Record<StylingAddOnKey, boolean>
+  suppliers: Record<SupplierAddOnKey, boolean>
+}
+
+export function emptyAddOns(): AddOnsState {
+  return {
+    food: Object.fromEntries(FOOD_ADD_ONS.map((a) => [a.key, 0])) as Record<FoodAddOnKey, number>,
+    equipment: Object.fromEntries(EQUIPMENT_ADD_ONS.map((a) => [a.key, 0])) as Record<EquipmentAddOnKey, number>,
+    styling: Object.fromEntries(STYLING_ADD_ONS.map((a) => [a.key, false])) as Record<StylingAddOnKey, boolean>,
+    suppliers: Object.fromEntries(SUPPLIER_ADD_ONS.map((a) => [a.key, false])) as Record<SupplierAddOnKey, boolean>,
+  }
+}
+
+export interface AddOnsLineItem {
+  label: string
+  amount: number
+}
+
+export function addOnsBreakdown(addOns: AddOnsState): AddOnsLineItem[] {
+  const items: AddOnsLineItem[] = []
+
+  for (const item of FOOD_ADD_ONS) {
+    const qty = addOns.food[item.key] || 0
+    if (qty > 0) items.push({ label: `${item.label} × ${qty} pax`, amount: qty * item.pricePerPax })
+  }
+  for (const item of EQUIPMENT_ADD_ONS) {
+    const qty = addOns.equipment[item.key] || 0
+    if (qty > 0) items.push({ label: `${item.label} × ${qty}`, amount: qty * item.price })
+  }
+  for (const item of STYLING_ADD_ONS) {
+    if (addOns.styling[item.key]) items.push({ label: item.label, amount: item.price })
+  }
+  for (const item of SUPPLIER_ADD_ONS) {
+    if (addOns.suppliers[item.key]) items.push({ label: item.label, amount: item.price })
+  }
+
+  return items
+}
+
+export function addOnsTotal(addOns: AddOnsState): number {
+  return addOnsBreakdown(addOns).reduce((sum, item) => sum + item.amount, 0)
+}
+
+export function parseAddOns(raw: string | null | undefined): AddOnsState {
+  const empty = emptyAddOns()
+  if (!raw) return empty
+
+  try {
+    const parsed = JSON.parse(raw)
+    return {
+      food: { ...empty.food, ...parsed?.food },
+      equipment: { ...empty.equipment, ...parsed?.equipment },
+      styling: { ...empty.styling, ...parsed?.styling },
+      suppliers: { ...empty.suppliers, ...parsed?.suppliers },
+    }
+  } catch {
+    return empty
+  }
+}

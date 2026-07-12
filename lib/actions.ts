@@ -8,6 +8,7 @@ export interface BookingInput {
   client_name: string
   contact_number: string
   facebook: string
+  client_address: string
   event_type: string
   event_date: string
   buffet_time: string
@@ -28,6 +29,7 @@ function toBookingRow(data: BookingInput) {
     client_name: data.client_name,
     contact_number: data.contact_number || null,
     facebook: data.facebook || null,
+    client_address: data.client_address || null,
     event_type: data.event_type || null,
     event_date: data.event_date || null,
     buffet_time: data.buffet_time || null,

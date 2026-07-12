@@ -15,7 +15,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { EVENT_TYPES, PACKAGES, PAYMENT_SCHEMES, computePaymentStatus, packageLabel, type PackageOption } from '@/lib/constants'
+import { AddOnsEditor } from '@/components/bookings/add-ons-editor'
+import {
+  EVENT_TYPES,
+  PACKAGES,
+  PAYMENT_SCHEMES,
+  addOnsBreakdown,
+  addOnsTotal,
+  computePaymentStatus,
+  packageLabel,
+  parseAddOns,
+  type AddOnsState,
+  type PackageOption,
+} from '@/lib/constants'
 import { formatCurrency } from '@/lib/utils'
 import { createBooking, updateBooking, type BookingInput } from '@/lib/actions'
 
@@ -23,6 +35,7 @@ const emptyForm: BookingInput = {
   client_name: '',
   contact_number: '',
   facebook: '',
+  client_address: '',
   event_type: '',
   event_date: '',
   buffet_time: '',
@@ -34,6 +47,11 @@ const emptyForm: BookingInput = {
   payment_scheme: '',
   amount_paid: 0,
   notes: '',
+}
+
+interface DraftPayload {
+  form: BookingInput
+  addOns: AddOnsState
 }
 
 export function BookingForm({
@@ -50,6 +68,7 @@ export function BookingForm({
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [form, setForm] = useState<BookingInput>(initialData ?? emptyForm)
+  const [addOns, setAddOns] = useState<AddOnsState>(parseAddOns(initialData?.add_ons))
 
   const draftKey = mode === 'create' ? 'booking-draft:new' : `booking-draft:edit:${bookingId}`
   const hasLoadedDraft = useRef(false)
@@ -60,7 +79,9 @@ export function BookingForm({
     const saved = window.localStorage.getItem(draftKey)
     if (saved) {
       try {
-        setForm(JSON.parse(saved))
+        const parsed = JSON.parse(saved) as Partial<DraftPayload>
+        if (parsed.form) setForm(parsed.form)
+        if (parsed.addOns) setAddOns(parsed.addOns)
       } catch {
         window.localStorage.removeItem(draftKey)
       }
@@ -72,11 +93,12 @@ export function BookingForm({
   useEffect(() => {
     if (!hasLoadedDraft.current) return
     const timeout = setTimeout(() => {
-      window.localStorage.setItem(draftKey, JSON.stringify(form))
+      const payload: DraftPayload = { form, addOns }
+      window.localStorage.setItem(draftKey, JSON.stringify(payload))
       setLastSavedAt(Date.now())
     }, 500)
     return () => clearTimeout(timeout)
-  }, [form, draftKey])
+  }, [form, addOns, draftKey])
 
   useEffect(() => {
     if (lastSavedAt === null) return
@@ -88,16 +110,11 @@ export function BookingForm({
   function clearDraft() {
     window.localStorage.removeItem(draftKey)
     setForm(initialData ?? emptyForm)
+    setAddOns(parseAddOns(initialData?.add_ons))
     setLastSavedAt(null)
     setShowSaved(false)
     toast.success('Draft cleared.')
   }
-
-  const balance = Math.max(form.total_amount - form.amount_paid, 0)
-  const paymentStatus = useMemo(
-    () => computePaymentStatus(form.total_amount, form.amount_paid),
-    [form.total_amount, form.amount_paid],
-  )
 
   function update<K extends keyof BookingInput>(key: K, value: BookingInput[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -110,9 +127,22 @@ export function BookingForm({
       ...prev,
       package: value,
       pax: pkg?.pax ?? prev.pax,
-      total_amount: pkg?.price ?? prev.total_amount,
     }))
   }
+
+  const selectedPackage = useMemo(() => packages.find((p) => p.name === form.package), [packages, form.package])
+  const breakdown = useMemo(() => addOnsBreakdown(addOns), [addOns])
+  const totalAmount = (selectedPackage?.price ?? 0) + addOnsTotal(addOns)
+
+  useEffect(() => {
+    setForm((prev) => (prev.total_amount === totalAmount ? prev : { ...prev, total_amount: totalAmount }))
+  }, [totalAmount])
+
+  const balance = Math.max(totalAmount - form.amount_paid, 0)
+  const paymentStatus = useMemo(
+    () => computePaymentStatus(totalAmount, form.amount_paid),
+    [totalAmount, form.amount_paid],
+  )
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -122,15 +152,17 @@ export function BookingForm({
       return
     }
 
+    const payload: BookingInput = { ...form, total_amount: totalAmount, add_ons: JSON.stringify(addOns) }
+
     startTransition(async () => {
       try {
         if (mode === 'create') {
-          const result = await createBooking(form)
+          const result = await createBooking(payload)
           window.localStorage.removeItem(draftKey)
           toast.success('Booking created.')
           router.push(`/bookings/${result.id}`)
         } else if (bookingId) {
-          await updateBooking(bookingId, form)
+          await updateBooking(bookingId, payload)
           window.localStorage.removeItem(draftKey)
           toast.success('Booking updated.')
           router.push(`/bookings/${bookingId}`)
@@ -173,6 +205,15 @@ export function BookingForm({
               value={form.facebook}
               onChange={(e) => update('facebook', e.target.value)}
               placeholder="facebook.com/username"
+            />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="client_address">Address</Label>
+            <Input
+              id="client_address"
+              value={form.client_address}
+              onChange={(e) => update('client_address', e.target.value)}
+              placeholder="Sta. Clara, Santa Maria, Bulacan"
             />
           </div>
         </div>
@@ -237,47 +278,37 @@ export function BookingForm({
       </section>
 
       <section className="rounded-lg border border-border bg-card p-6 shadow-sm">
-        <h2 className="mb-4 text-lg font-semibold text-foreground">Package &amp; Add-ons</h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="package">Package</Label>
-            <Select value={form.package} onValueChange={handlePackageChange}>
-              <SelectTrigger id="package" className="w-full">
-                <SelectValue placeholder="Select a package" />
-              </SelectTrigger>
-              <SelectContent>
-                {packages.map((pkg) => (
-                  <SelectItem key={pkg.name} value={pkg.name}>
-                    {packageLabel(pkg)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="add_ons">Add-ons</Label>
-            <Textarea
-              id="add_ons"
-              value={form.add_ons}
-              onChange={(e) => update('add_ons', e.target.value)}
-              placeholder="Lechon, extra rice, sound system..."
-            />
-          </div>
+        <h2 className="mb-4 text-lg font-semibold text-foreground">Package</h2>
+        <div className="space-y-1.5">
+          <Label htmlFor="package">Package</Label>
+          <Select value={form.package} onValueChange={handlePackageChange}>
+            <SelectTrigger id="package" className="w-full">
+              <SelectValue placeholder="Select a package" />
+            </SelectTrigger>
+            <SelectContent>
+              {packages.map((pkg) => (
+                <SelectItem key={pkg.name} value={pkg.name}>
+                  {packageLabel(pkg)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+      </section>
+
+      <section className="rounded-lg border border-border bg-card p-6 shadow-sm">
+        <h2 className="mb-4 text-lg font-semibold text-foreground">Add-ons</h2>
+        <AddOnsEditor value={addOns} onChange={setAddOns} />
       </section>
 
       <section className="rounded-lg border border-border bg-card p-6 shadow-sm">
         <h2 className="mb-4 text-lg font-semibold text-foreground">Payment</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label htmlFor="total_amount">Total Amount</Label>
-            <Input
-              id="total_amount"
-              type="number"
-              min={0}
-              value={form.total_amount}
-              onChange={(e) => update('total_amount', Number(e.target.value))}
-            />
+            <Label>Total Amount</Label>
+            <div className="flex h-8 items-center rounded-lg border border-input bg-muted px-2.5 text-sm font-semibold text-foreground">
+              {formatCurrency(totalAmount)}
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="payment_scheme">Payment Scheme</Label>
@@ -327,6 +358,30 @@ export function BookingForm({
             </div>
           </div>
         </div>
+
+        {(selectedPackage || breakdown.length > 0) && (
+          <div className="mt-4 space-y-1.5 rounded-lg border border-border bg-muted/30 p-4 text-sm">
+            <p className="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              Total Breakdown
+            </p>
+            {selectedPackage && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">{packageLabel(selectedPackage)}</span>
+                <span className="text-foreground">{formatCurrency(selectedPackage.price ?? 0)}</span>
+              </div>
+            )}
+            {breakdown.map((item) => (
+              <div key={item.label} className="flex justify-between">
+                <span className="text-muted-foreground">{item.label}</span>
+                <span className="text-foreground">{formatCurrency(item.amount)}</span>
+              </div>
+            ))}
+            <div className="flex justify-between border-t border-border pt-1.5 font-semibold">
+              <span className="text-foreground">Total</span>
+              <span className="text-primary">{formatCurrency(totalAmount)}</span>
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="rounded-lg border border-border bg-card p-6 shadow-sm">

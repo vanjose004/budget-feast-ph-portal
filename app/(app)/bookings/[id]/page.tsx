@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { supabase, type Payment } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
+import { addOnsBreakdown, parseAddOns } from '@/lib/constants'
 import { PaymentStatusBadge } from '@/components/bookings/payment-status-badge'
 import { BookingDetailActions } from '@/components/bookings/booking-detail-actions'
 import { AddPaymentDialog } from '@/components/bookings/add-payment-dialog'
@@ -39,6 +40,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
 
   const payments: Payment[] = paymentsData ?? []
   const balance = booking.balance ?? Math.max((booking.total_amount ?? 0) - (booking.amount_paid ?? 0), 0)
+  const addOnsBreakdownItems = addOnsBreakdown(parseAddOns(booking.add_ons))
 
   return (
     <>
@@ -62,6 +64,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
               <InfoRow label="Client Name" value={booking.client_name} />
               <InfoRow label="Contact Number" value={booking.contact_number ?? '—'} />
               <InfoRow label="Facebook" value={booking.facebook ?? '—'} />
+              <InfoRow label="Address" value={booking.client_address ?? '—'} />
             </div>
           </section>
 
@@ -75,11 +78,6 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
               <InfoRow label="Pax" value={booking.pax ? String(booking.pax) : '—'} />
               <InfoRow label="Package" value={booking.package ?? '—'} />
             </div>
-            {booking.add_ons && (
-              <div className="mt-4">
-                <InfoRow label="Add-ons" value={booking.add_ons} />
-              </div>
-            )}
           </section>
         </div>
 
@@ -94,6 +92,20 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
             <InfoRow label="Balance" value={formatCurrency(balance)} />
             <InfoRow label="Payment Scheme" value={booking.payment_scheme ?? '—'} />
           </div>
+
+          {addOnsBreakdownItems.length > 0 && (
+            <div className="mt-4 space-y-1.5 rounded-lg border border-border bg-muted/30 p-4 text-sm">
+              <p className="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                Add-ons Breakdown
+              </p>
+              {addOnsBreakdownItems.map((item) => (
+                <div key={item.label} className="flex justify-between">
+                  <span className="text-muted-foreground">{item.label}</span>
+                  <span className="text-foreground">{formatCurrency(item.amount)}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {booking.notes && (
