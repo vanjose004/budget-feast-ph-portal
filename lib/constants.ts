@@ -159,3 +159,106 @@ export function parseAddOns(raw: string | null | undefined): AddOnsState {
     return empty
   }
 }
+
+export const MENU_CATEGORIES = [
+  {
+    key: 'chicken',
+    label: 'Chicken',
+    required: true,
+    condition: null,
+    options: [
+      'Chicken BBQ',
+      'Chicken Afritada',
+      'Chicken Pastel',
+      'Honey Garlic Chicken',
+      'Chicken Hamonado',
+      'Fried Chicken',
+    ],
+  },
+  {
+    key: 'pork',
+    label: 'Pork',
+    required: true,
+    condition: null,
+    options: [
+      'Pork Menudo',
+      'Pork Hamonado',
+      'Pork Asado',
+      'Sweet & Sour Pork',
+      'Pork BBQ Strips',
+      'Lechon Kawali',
+      'Pork Humba',
+      'Crispy Pork Kare-Kare',
+    ],
+  },
+  {
+    key: 'pastaNoodles',
+    label: 'Pasta/Noodles',
+    required: true,
+    condition: null,
+    options: ['Carbonara', 'Filipino Spaghetti', 'Baked Macaroni', 'Pancit Bihon Guisado', 'Pesto Pasta'],
+  },
+  {
+    key: 'beef',
+    label: 'Beef',
+    required: true,
+    condition: 'beef' as FoodAddOnKey,
+    options: ['Beef Caldereta', 'Beef Mechado', 'Beef Stir Fry w/ Broccoli', 'Beef Kare-Kare', 'Creamy Beef in Mushroom'],
+  },
+  {
+    key: 'fishSeafood',
+    label: 'Fish/Seafood',
+    required: true,
+    condition: 'pastaChickenFish' as FoodAddOnKey,
+    options: ['Fish Fillet Sweet & Sour', 'Fish Fillet w/ Garlic Mayo', 'Fish Fillet w/ Special Sauce'],
+  },
+  {
+    key: 'vegetables',
+    label: 'Vegetables',
+    required: false,
+    condition: null,
+    options: ['Chopsuey', 'Buttered Vegetables', 'Lumpiang Gulay', 'Sipo Egg', 'Buttered Carrots and Corn'],
+  },
+  {
+    key: 'dessert',
+    label: 'Dessert',
+    required: true,
+    condition: null,
+    options: ['Buko Pandan', 'Coffee Jelly', 'Pandan Gulaman', 'Sweetened Nata and Sago', 'Fruit Salad', 'Cathedral Jelly'],
+  },
+  {
+    key: 'drinks',
+    label: 'Drinks',
+    required: true,
+    condition: null,
+    options: ['Lemon Iced Tea', 'Red Iced Tea', 'Blue Lemonade', 'Cucumber Juice', 'Buko Juice'],
+  },
+] as const
+
+export type MenuCategoryKey = (typeof MENU_CATEGORIES)[number]['key']
+
+export type SelectedMenu = Partial<Record<MenuCategoryKey, string>>
+
+export function visibleMenuCategories(addOns: AddOnsState) {
+  return MENU_CATEGORIES.filter((category) => {
+    if (!category.condition) return true
+    return (addOns.food[category.condition] || 0) > 0
+  })
+}
+
+export function parseSelectedMenu(raw: string | null | undefined): SelectedMenu {
+  if (!raw) return {}
+  try {
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+export function selectedMenuBreakdown(selectedMenu: SelectedMenu): { label: string; dish: string }[] {
+  return MENU_CATEGORIES.filter((category) => selectedMenu[category.key]).map((category) => ({
+    label: category.label,
+    dish: selectedMenu[category.key] as string,
+  }))
+}

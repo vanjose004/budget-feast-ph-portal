@@ -18,6 +18,7 @@ export interface Booking {
   pax: number | null
   package: string | null
   add_ons: string | null
+  selected_menu: string | null
   total_amount: number | null
   amount_paid: number
   balance: number | null

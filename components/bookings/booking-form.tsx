@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { AddOnsEditor } from '@/components/bookings/add-ons-editor'
+import { MenuSelectionEditor } from '@/components/bookings/menu-selection-editor'
 import {
   EVENT_TYPES,
   PACKAGES,
@@ -25,8 +26,11 @@ import {
   computePaymentStatus,
   packageLabel,
   parseAddOns,
+  parseSelectedMenu,
+  visibleMenuCategories,
   type AddOnsState,
   type PackageOption,
+  type SelectedMenu,
 } from '@/lib/constants'
 import { formatCurrency } from '@/lib/utils'
 import { createBooking, updateBooking, type BookingInput } from '@/lib/actions'
@@ -43,6 +47,7 @@ const emptyForm: BookingInput = {
   pax: null,
   package: '',
   add_ons: '',
+  selected_menu: '',
   total_amount: 0,
   payment_scheme: '',
   amount_paid: 0,
@@ -52,6 +57,7 @@ const emptyForm: BookingInput = {
 interface DraftPayload {
   form: BookingInput
   addOns: AddOnsState
+  selectedMenu: SelectedMenu
 }
 
 export function BookingForm({
@@ -69,6 +75,7 @@ export function BookingForm({
   const [isPending, startTransition] = useTransition()
   const [form, setForm] = useState<BookingInput>(initialData ?? emptyForm)
   const [addOns, setAddOns] = useState<AddOnsState>(parseAddOns(initialData?.add_ons))
+  const [selectedMenu, setSelectedMenu] = useState<SelectedMenu>(parseSelectedMenu(initialData?.selected_menu))
 
   const draftKey = mode === 'create' ? 'booking-draft:new' : `booking-draft:edit:${bookingId}`
   const hasLoadedDraft = useRef(false)
@@ -82,6 +89,7 @@ export function BookingForm({
         const parsed = JSON.parse(saved) as Partial<DraftPayload>
         if (parsed.form) setForm(parsed.form)
         if (parsed.addOns) setAddOns(parsed.addOns)
+        if (parsed.selectedMenu) setSelectedMenu(parsed.selectedMenu)
       } catch {
         window.localStorage.removeItem(draftKey)
       }
@@ -93,12 +101,12 @@ export function BookingForm({
   useEffect(() => {
     if (!hasLoadedDraft.current) return
     const timeout = setTimeout(() => {
-      const payload: DraftPayload = { form, addOns }
+      const payload: DraftPayload = { form, addOns, selectedMenu }
       window.localStorage.setItem(draftKey, JSON.stringify(payload))
       setLastSavedAt(Date.now())
     }, 500)
     return () => clearTimeout(timeout)
-  }, [form, addOns, draftKey])
+  }, [form, addOns, selectedMenu, draftKey])
 
   useEffect(() => {
     if (lastSavedAt === null) return
@@ -111,6 +119,7 @@ export function BookingForm({
     window.localStorage.removeItem(draftKey)
     setForm(initialData ?? emptyForm)
     setAddOns(parseAddOns(initialData?.add_ons))
+    setSelectedMenu(parseSelectedMenu(initialData?.selected_menu))
     setLastSavedAt(null)
     setShowSaved(false)
     toast.success('Draft cleared.')
@@ -138,6 +147,24 @@ export function BookingForm({
     setForm((prev) => (prev.total_amount === totalAmount ? prev : { ...prev, total_amount: totalAmount }))
   }, [totalAmount])
 
+  const visibleMenu = useMemo(() => visibleMenuCategories(addOns), [addOns])
+
+  useEffect(() => {
+    const visibleKeys = new Set(visibleMenu.map((c) => c.key))
+    setSelectedMenu((prev) => {
+      const next: SelectedMenu = {}
+      let changed = false
+      for (const key of Object.keys(prev) as (keyof SelectedMenu)[]) {
+        if (visibleKeys.has(key)) {
+          next[key] = prev[key]
+        } else {
+          changed = true
+        }
+      }
+      return changed ? next : prev
+    })
+  }, [visibleMenu])
+
   const balance = Math.max(totalAmount - form.amount_paid, 0)
   const paymentStatus = useMemo(
     () => computePaymentStatus(totalAmount, form.amount_paid),
@@ -152,7 +179,12 @@ export function BookingForm({
       return
     }
 
-    const payload: BookingInput = { ...form, total_amount: totalAmount, add_ons: JSON.stringify(addOns) }
+    const payload: BookingInput = {
+      ...form,
+      total_amount: totalAmount,
+      add_ons: JSON.stringify(addOns),
+      selected_menu: JSON.stringify(selectedMenu),
+    }
 
     startTransition(async () => {
       try {
@@ -299,6 +331,11 @@ export function BookingForm({
       <section className="rounded-lg border border-border bg-card p-6 shadow-sm">
         <h2 className="mb-4 text-lg font-semibold text-foreground">Add-ons</h2>
         <AddOnsEditor value={addOns} onChange={setAddOns} />
+      </section>
+
+      <section className="rounded-lg border border-border bg-card p-6 shadow-sm">
+        <h2 className="mb-4 text-lg font-semibold text-foreground">Menu Selection</h2>
+        <MenuSelectionEditor value={selectedMenu} onChange={setSelectedMenu} addOns={addOns} />
       </section>
 
       <section className="rounded-lg border border-border bg-card p-6 shadow-sm">

@@ -1,11 +1,12 @@
 import { notFound } from 'next/navigation'
 import { supabase, type Payment } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
-import { addOnsBreakdown, parseAddOns } from '@/lib/constants'
+import { addOnsBreakdown, parseAddOns, parseSelectedMenu, selectedMenuBreakdown } from '@/lib/constants'
 import { PaymentStatusBadge } from '@/components/bookings/payment-status-badge'
 import { BookingDetailActions } from '@/components/bookings/booking-detail-actions'
 import { AddPaymentDialog } from '@/components/bookings/add-payment-dialog'
 import { PaymentTimeline } from '@/components/bookings/payment-timeline'
+import { EditableNotes } from '@/components/bookings/editable-notes'
 
 export const revalidate = 0
 
@@ -41,6 +42,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
   const payments: Payment[] = paymentsData ?? []
   const balance = booking.balance ?? Math.max((booking.total_amount ?? 0) - (booking.amount_paid ?? 0), 0)
   const addOnsBreakdownItems = addOnsBreakdown(parseAddOns(booking.add_ons))
+  const menuBreakdownItems = selectedMenuBreakdown(parseSelectedMenu(booking.selected_menu))
 
   return (
     <>
@@ -81,6 +83,17 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
           </section>
         </div>
 
+        {menuBreakdownItems.length > 0 && (
+          <section className="rounded-lg border border-border bg-card p-6 shadow-sm print:border-0 print:shadow-none">
+            <h2 className="mb-4 text-lg font-semibold text-foreground">Menu Selection</h2>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+              {menuBreakdownItems.map((item) => (
+                <InfoRow key={item.label} label={item.label} value={item.dish} />
+              ))}
+            </div>
+          </section>
+        )}
+
         <section className="rounded-lg border border-border bg-card p-6 shadow-sm print:border-0 print:shadow-none">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-semibold text-foreground">Payment</h2>
@@ -108,12 +121,10 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
           )}
         </section>
 
-        {booking.notes && (
-          <section className="rounded-lg border border-border bg-card p-6 shadow-sm print:border-0 print:shadow-none">
-            <h2 className="mb-2 text-lg font-semibold text-foreground">Notes</h2>
-            <p className="whitespace-pre-wrap text-foreground">{booking.notes}</p>
-          </section>
-        )}
+        <section className="rounded-lg border border-border bg-card p-6 shadow-sm print:border-0 print:shadow-none">
+          <h2 className="mb-2 text-lg font-semibold text-foreground">Notes</h2>
+          <EditableNotes bookingId={booking.id} notes={booking.notes} />
+        </section>
 
         <section className="rounded-lg border border-border bg-card p-6 shadow-sm print:border-0 print:shadow-none">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3 print:hidden">

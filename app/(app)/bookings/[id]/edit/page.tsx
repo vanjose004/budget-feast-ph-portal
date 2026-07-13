@@ -19,6 +19,7 @@ function toBookingInput(booking: Booking): BookingInput {
     pax: booking.pax,
     package: booking.package ?? '',
     add_ons: booking.add_ons ?? '',
+    selected_menu: booking.selected_menu ?? '',
     total_amount: booking.total_amount ?? 0,
     payment_scheme: booking.payment_scheme ?? '',
     amount_paid: booking.amount_paid ?? 0,

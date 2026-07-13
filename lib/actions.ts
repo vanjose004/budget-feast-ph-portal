@@ -16,6 +16,7 @@ export interface BookingInput {
   pax: number | null
   package: string
   add_ons: string
+  selected_menu: string
   total_amount: number
   payment_scheme: string
   amount_paid: number
@@ -37,6 +38,7 @@ function toBookingRow(data: BookingInput) {
     pax: data.pax,
     package: data.package || null,
     add_ons: data.add_ons || null,
+    selected_menu: data.selected_menu || null,
     total_amount: data.total_amount,
     amount_paid: data.amount_paid,
     balance,
@@ -75,6 +77,15 @@ export async function updateBooking(id: string, data: BookingInput) {
   revalidatePath('/clients')
   revalidatePath('/calendar')
   revalidatePath('/accounting')
+}
+
+export async function updateBookingNotes(id: string, notes: string) {
+  const { error } = await supabase.from('bookings').update({ notes: notes || null }).eq('id', id)
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath(`/bookings/${id}`)
+  revalidatePath('/bookings')
 }
 
 export async function deleteBooking(id: string) {

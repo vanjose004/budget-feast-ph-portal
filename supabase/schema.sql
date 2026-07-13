@@ -11,6 +11,7 @@ CREATE TABLE bookings (
   pax integer,
   package text,
   add_ons text,
+  selected_menu text,
   total_amount numeric,
   amount_paid numeric DEFAULT 0,
   balance numeric,
@@ -65,3 +66,4 @@ INSERT INTO settings (key, value) VALUES
 ('package_grand_price', '27000');
 
 ALTER TABLE bookings ADD COLUMN client_address text;
+ALTER TABLE bookings ADD COLUMN selected_menu text;
