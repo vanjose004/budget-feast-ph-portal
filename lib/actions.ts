@@ -48,6 +48,24 @@ function toBookingRow(data: BookingInput) {
   }
 }
 
+function autoPaymentType(amountPaid: number, totalAmount: number): string {
+  return totalAmount > 0 && amountPaid >= totalAmount ? 'Full Payment' : 'Reservation/Down Payment'
+}
+
+async function recordAutoPayment(bookingId: string, amount: number, totalAmount: number, amountPaid: number) {
+  if (amount <= 0) return
+
+  const { error } = await supabase.from('payments').insert({
+    booking_id: bookingId,
+    amount,
+    payment_type: autoPaymentType(amountPaid, totalAmount),
+    mode_of_payment: null,
+    date_paid: new Date().toISOString().slice(0, 10),
+  })
+
+  if (error) throw new Error(error.message)
+}
+
 export async function createBooking(data: BookingInput) {
   const { data: row, error } = await supabase
     .from('bookings')
@@ -56,6 +74,8 @@ export async function createBooking(data: BookingInput) {
     .single()
 
   if (error) throw new Error(error.message)
+
+  await recordAutoPayment(row.id, data.amount_paid, data.total_amount, data.amount_paid)
 
   revalidatePath('/')
   revalidatePath('/bookings')
@@ -67,9 +87,21 @@ export async function createBooking(data: BookingInput) {
 }
 
 export async function updateBooking(id: string, data: BookingInput) {
+  const { data: existingPayments, error: paymentsError } = await supabase
+    .from('payments')
+    .select('amount')
+    .eq('booking_id', id)
+
+  if (paymentsError) throw new Error(paymentsError.message)
+
+  const existingPaymentsTotal = (existingPayments ?? []).reduce((sum, p) => sum + (p.amount ?? 0), 0)
+  const delta = data.amount_paid - existingPaymentsTotal
+
   const { error } = await supabase.from('bookings').update(toBookingRow(data)).eq('id', id)
 
   if (error) throw new Error(error.message)
+
+  await recordAutoPayment(id, delta, data.total_amount, data.amount_paid)
 
   revalidatePath('/')
   revalidatePath('/bookings')
