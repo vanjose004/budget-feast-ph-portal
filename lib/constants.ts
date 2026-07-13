@@ -176,7 +176,12 @@ export const MENU_CATEGORIES = [
 
 export type MenuCategoryKey = (typeof MENU_CATEGORIES)[number]['key']
 
-export type SelectedMenu = Partial<Record<MenuCategoryKey, string>>
+export interface SelectedMenuEntry {
+  dish: string
+  pax: number
+}
+
+export type SelectedMenu = Partial<Record<MenuCategoryKey, SelectedMenuEntry>>
 
 export function visibleMenuCategories(addOns: AddOnsState) {
   return MENU_CATEGORIES.filter((category) => {
@@ -204,15 +209,27 @@ export function parseSelectedMenu(raw: string | null | undefined): SelectedMenu 
   if (!raw) return {}
   try {
     const parsed = JSON.parse(raw)
-    return parsed && typeof parsed === 'object' ? parsed : {}
+    if (!parsed || typeof parsed !== 'object') return {}
+
+    const result: SelectedMenu = {}
+    for (const key of Object.keys(parsed) as MenuCategoryKey[]) {
+      const entry = parsed[key]
+      if (typeof entry === 'string') {
+        // Backward compatibility with the previous format, which stored just the dish name.
+        result[key] = { dish: entry, pax: 0 }
+      } else if (entry && typeof entry === 'object' && typeof entry.dish === 'string') {
+        result[key] = { dish: entry.dish, pax: Number(entry.pax) || 0 }
+      }
+    }
+    return result
   } catch {
     return {}
   }
 }
 
-export function selectedMenuBreakdown(selectedMenu: SelectedMenu): { label: string; dish: string }[] {
-  return MENU_CATEGORIES.filter((category) => selectedMenu[category.key]).map((category) => ({
-    label: category.label,
-    dish: selectedMenu[category.key] as string,
-  }))
+export function selectedMenuBreakdown(selectedMenu: SelectedMenu): { label: string; dish: string; pax: number }[] {
+  return MENU_CATEGORIES.filter((category) => selectedMenu[category.key]).map((category) => {
+    const entry = selectedMenu[category.key] as SelectedMenuEntry
+    return { label: category.label, dish: entry.dish, pax: entry.pax }
+  })
 }

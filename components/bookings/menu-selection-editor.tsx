@@ -1,10 +1,10 @@
 import type { MenuItem } from '@/lib/supabase'
 import {
-  MENU_CATEGORIES,
   activeMenuOptions,
   menuCategoryPax,
   visibleMenuCategories,
   type AddOnsState,
+  type MenuCategoryKey,
   type SelectedMenu,
 } from '@/lib/constants'
 
@@ -23,11 +23,7 @@ export function MenuSelectionEditor({
 }) {
   const categories = visibleMenuCategories(addOns)
 
-  function select(categoryKey: (typeof MENU_CATEGORIES)[number]['key'], option: string) {
-    onChange({ ...value, [categoryKey]: option })
-  }
-
-  function clear(categoryKey: (typeof MENU_CATEGORIES)[number]['key']) {
+  function clear(categoryKey: MenuCategoryKey) {
     const next = { ...value }
     delete next[categoryKey]
     onChange(next)
@@ -37,7 +33,19 @@ export function MenuSelectionEditor({
     <div className="space-y-6">
       {categories.map((category) => {
         const options = activeMenuOptions(menuItems, category.key)
-        const categoryPax = menuCategoryPax(category, addOns, pax)
+        const selected = value[category.key]
+
+        function select(dishName: string) {
+          onChange({
+            ...value,
+            [category.key]: { dish: dishName, pax: menuCategoryPax(category, addOns, pax) },
+          })
+        }
+
+        function updatePax(newPax: number) {
+          if (!selected) return
+          onChange({ ...value, [category.key]: { ...selected, pax: newPax } })
+        }
 
         return (
           <div key={category.key}>
@@ -45,10 +53,10 @@ export function MenuSelectionEditor({
               <h3 className="text-sm font-semibold text-foreground">
                 {category.label}{' '}
                 <span className="font-normal text-muted-foreground">
-                  ({category.required ? 'pick 1' : 'optional'}) &middot; {categoryPax} pax
+                  ({category.required ? 'pick 1' : 'optional'})
                 </span>
               </h3>
-              {!category.required && value[category.key] && (
+              {!category.required && selected && (
                 <button
                   type="button"
                   onClick={() => clear(category.key)}
@@ -64,21 +72,41 @@ export function MenuSelectionEditor({
               </p>
             ) : (
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {options.map((item) => (
-                  <label
-                    key={item.id}
-                    className="flex cursor-pointer items-center gap-2 rounded-lg border border-border p-2.5 text-sm transition-colors hover:bg-muted/50"
-                  >
-                    <input
-                      type="radio"
-                      name={category.key}
-                      checked={value[category.key] === item.dish_name}
-                      onChange={() => select(category.key, item.dish_name)}
-                      className="h-4 w-4 accent-primary"
-                    />
-                    {item.dish_name}
-                  </label>
-                ))}
+                {options.map((item) => {
+                  const isSelected = selected?.dish === item.dish_name
+
+                  return (
+                    <div
+                      key={item.id}
+                      className={`flex items-center gap-2 rounded-lg border p-2.5 text-sm transition-colors ${
+                        isSelected ? 'border-primary' : 'border-border hover:bg-muted/50'
+                      }`}
+                    >
+                      <label className="flex flex-1 cursor-pointer items-center gap-2">
+                        <input
+                          type="radio"
+                          name={category.key}
+                          checked={isSelected}
+                          onChange={() => select(item.dish_name)}
+                          className="h-4 w-4 shrink-0 accent-primary"
+                        />
+                        {item.dish_name}
+                      </label>
+                      {isSelected && (
+                        <div className="flex shrink-0 items-center gap-1">
+                          <input
+                            type="number"
+                            min={0}
+                            value={selected.pax}
+                            onChange={(e) => updatePax(e.target.value === '' ? 0 : Number(e.target.value))}
+                            className="w-16 rounded-md border border-input bg-transparent px-1.5 py-1 text-sm"
+                          />
+                          <span className="text-xs text-muted-foreground">pax</span>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>

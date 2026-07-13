@@ -88,7 +88,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
             <h2 className="mb-4 text-lg font-semibold text-foreground">Menu Selection</h2>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
               {menuBreakdownItems.map((item) => (
-                <InfoRow key={item.label} label={item.label} value={item.dish} />
+                <InfoRow key={item.label} label={item.label} value={`${item.dish} (${item.pax} pax)`} />
               ))}
             </div>
           </section>
