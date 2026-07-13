@@ -1,3 +1,5 @@
+import Link from 'next/link'
+import { ChevronRight, UtensilsCrossed } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { SettingsForm, type SettingsValues } from '@/components/settings/settings-form'
 
@@ -32,7 +34,23 @@ export default async function SettingsPage() {
         <p className="mt-1 text-muted-foreground">Business information and package pricing.</p>
       </div>
 
-      <div className="mx-auto max-w-3xl p-4 sm:p-8">
+      <div className="mx-auto max-w-3xl space-y-6 p-4 sm:p-8">
+        <Link
+          href="/settings/menu"
+          className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-6 shadow-sm transition-colors hover:bg-muted/50"
+        >
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-accent p-2.5">
+              <UtensilsCrossed className="h-5 w-5 text-accent-foreground" />
+            </div>
+            <div>
+              <p className="font-semibold text-foreground">Menu Management</p>
+              <p className="text-sm text-muted-foreground">Add, disable, remove, and reorder booking form dishes.</p>
+            </div>
+          </div>
+          <ChevronRight className="h-5 w-5 text-muted-foreground" />
+        </Link>
+
         <SettingsForm initialValues={initialValues} />
       </div>
     </>

@@ -1,3 +1,5 @@
+import type { MenuItem } from '@/lib/supabase'
+
 export const EVENT_TYPES = [
   'Birthday',
   'Christening',
@@ -161,78 +163,14 @@ export function parseAddOns(raw: string | null | undefined): AddOnsState {
 }
 
 export const MENU_CATEGORIES = [
-  {
-    key: 'chicken',
-    label: 'Chicken',
-    required: true,
-    condition: null,
-    options: [
-      'Chicken BBQ',
-      'Chicken Afritada',
-      'Chicken Pastel',
-      'Honey Garlic Chicken',
-      'Chicken Hamonado',
-      'Fried Chicken',
-    ],
-  },
-  {
-    key: 'pork',
-    label: 'Pork',
-    required: true,
-    condition: null,
-    options: [
-      'Pork Menudo',
-      'Pork Hamonado',
-      'Pork Asado',
-      'Sweet & Sour Pork',
-      'Pork BBQ Strips',
-      'Lechon Kawali',
-      'Pork Humba',
-      'Crispy Pork Kare-Kare',
-    ],
-  },
-  {
-    key: 'pastaNoodles',
-    label: 'Pasta/Noodles',
-    required: true,
-    condition: null,
-    options: ['Carbonara', 'Filipino Spaghetti', 'Baked Macaroni', 'Pancit Bihon Guisado', 'Pesto Pasta'],
-  },
-  {
-    key: 'beef',
-    label: 'Beef',
-    required: true,
-    condition: 'beef' as FoodAddOnKey,
-    options: ['Beef Caldereta', 'Beef Mechado', 'Beef Stir Fry w/ Broccoli', 'Beef Kare-Kare', 'Creamy Beef in Mushroom'],
-  },
-  {
-    key: 'fishSeafood',
-    label: 'Fish/Seafood',
-    required: true,
-    condition: 'pastaChickenFish' as FoodAddOnKey,
-    options: ['Fish Fillet Sweet & Sour', 'Fish Fillet w/ Garlic Mayo', 'Fish Fillet w/ Special Sauce'],
-  },
-  {
-    key: 'vegetables',
-    label: 'Vegetables',
-    required: false,
-    condition: null,
-    options: ['Chopsuey', 'Buttered Vegetables', 'Lumpiang Gulay', 'Sipo Egg', 'Buttered Carrots and Corn'],
-  },
-  {
-    key: 'dessert',
-    label: 'Dessert',
-    required: true,
-    condition: null,
-    options: ['Buko Pandan', 'Coffee Jelly', 'Pandan Gulaman', 'Sweetened Nata and Sago', 'Fruit Salad', 'Cathedral Jelly'],
-  },
-  {
-    key: 'drinks',
-    label: 'Drinks',
-    required: true,
-    condition: null,
-    options: ['Lemon Iced Tea', 'Red Iced Tea', 'Blue Lemonade', 'Cucumber Juice', 'Buko Juice'],
-  },
+  { key: 'chicken', label: 'Chicken', required: true, condition: null },
+  { key: 'pork', label: 'Pork', required: true, condition: null },
+  { key: 'pastaNoodles', label: 'Pasta/Noodles', required: true, condition: null },
+  { key: 'beef', label: 'Beef', required: true, condition: 'beef' as FoodAddOnKey },
+  { key: 'fishSeafood', label: 'Fish/Seafood', required: true, condition: 'pastaChickenFish' as FoodAddOnKey },
+  { key: 'vegetables', label: 'Vegetables', required: false, condition: null },
+  { key: 'dessert', label: 'Dessert', required: true, condition: null },
+  { key: 'drinks', label: 'Drinks', required: true, condition: null },
 ] as const
 
 export type MenuCategoryKey = (typeof MENU_CATEGORIES)[number]['key']
@@ -244,6 +182,12 @@ export function visibleMenuCategories(addOns: AddOnsState) {
     if (!category.condition) return true
     return (addOns.food[category.condition] || 0) > 0
   })
+}
+
+export function activeMenuOptions(items: MenuItem[], categoryKey: MenuCategoryKey): MenuItem[] {
+  return items
+    .filter((item) => item.category === categoryKey && item.is_active)
+    .sort((a, b) => a.sort_order - b.sort_order || a.dish_name.localeCompare(b.dish_name))
 }
 
 export function parseSelectedMenu(raw: string | null | undefined): SelectedMenu {

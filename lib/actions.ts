@@ -188,3 +188,83 @@ export async function updateSettings(values: Record<string, string>) {
   revalidatePath('/settings')
   revalidatePath('/bookings/new')
 }
+
+function revalidateMenu() {
+  revalidatePath('/settings/menu')
+  revalidatePath('/bookings/new')
+  revalidatePath('/bookings/[id]/edit', 'page')
+}
+
+export async function addMenuItem(category: string, dishName: string) {
+  const { data: existing, error: existingError } = await supabase
+    .from('menu_items')
+    .select('sort_order')
+    .eq('category', category)
+    .order('sort_order', { ascending: false })
+    .limit(1)
+
+  if (existingError) throw new Error(existingError.message)
+
+  const nextOrder = existing && existing.length > 0 ? existing[0].sort_order + 1 : 0
+
+  const { error } = await supabase
+    .from('menu_items')
+    .insert({ category, dish_name: dishName, sort_order: nextOrder })
+
+  if (error) throw new Error(error.message)
+
+  revalidateMenu()
+}
+
+export async function setMenuItemActive(id: string, isActive: boolean) {
+  const { error } = await supabase.from('menu_items').update({ is_active: isActive }).eq('id', id)
+  if (error) throw new Error(error.message)
+  revalidateMenu()
+}
+
+export async function deleteMenuItem(id: string) {
+  const { error } = await supabase.from('menu_items').delete().eq('id', id)
+  if (error) throw new Error(error.message)
+  revalidateMenu()
+}
+
+export async function moveMenuItem(id: string, direction: 'up' | 'down') {
+  const { data: item, error: itemError } = await supabase
+    .from('menu_items')
+    .select('id, category, sort_order')
+    .eq('id', id)
+    .single()
+
+  if (itemError) throw new Error(itemError.message)
+
+  const { data: siblings, error: siblingsError } = await supabase
+    .from('menu_items')
+    .select('id, sort_order')
+    .eq('category', item.category)
+    .order('sort_order', { ascending: true })
+
+  if (siblingsError) throw new Error(siblingsError.message)
+
+  const list = siblings ?? []
+  const index = list.findIndex((s) => s.id === id)
+  const swapIndex = direction === 'up' ? index - 1 : index + 1
+
+  if (index === -1 || swapIndex < 0 || swapIndex >= list.length) return
+
+  const current = list[index]
+  const other = list[swapIndex]
+
+  const { error: firstUpdateError } = await supabase
+    .from('menu_items')
+    .update({ sort_order: other.sort_order })
+    .eq('id', current.id)
+  if (firstUpdateError) throw new Error(firstUpdateError.message)
+
+  const { error: secondUpdateError } = await supabase
+    .from('menu_items')
+    .update({ sort_order: current.sort_order })
+    .eq('id', other.id)
+  if (secondUpdateError) throw new Error(secondUpdateError.message)
+
+  revalidateMenu()
+}

@@ -1,13 +1,18 @@
 import { BookingForm } from '@/components/bookings/booking-form'
-import { supabase } from '@/lib/supabase'
+import { supabase, type MenuItem } from '@/lib/supabase'
 import { packagesFromSettings } from '@/lib/constants'
 
 export const revalidate = 0
 
 export default async function NewBookingPage() {
-  const { data } = await supabase.from('settings').select('key, value')
-  const settings = Object.fromEntries((data ?? []).map((s) => [s.key, s.value ?? '']))
+  const [{ data: settingsData }, { data: menuData }] = await Promise.all([
+    supabase.from('settings').select('key, value'),
+    supabase.from('menu_items').select('*').eq('is_active', true).order('sort_order'),
+  ])
+
+  const settings = Object.fromEntries((settingsData ?? []).map((s) => [s.key, s.value ?? '']))
   const packages = packagesFromSettings(settings)
+  const menuItems: MenuItem[] = menuData ?? []
 
   return (
     <>
@@ -17,7 +22,7 @@ export default async function NewBookingPage() {
       </div>
 
       <div className="mx-auto max-w-3xl p-4 sm:p-8">
-        <BookingForm mode="create" packages={packages} />
+        <BookingForm mode="create" packages={packages} menuItems={menuItems} />
       </div>
     </>
   )

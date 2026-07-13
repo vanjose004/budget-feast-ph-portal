@@ -34,6 +34,7 @@ import {
 } from '@/lib/constants'
 import { formatCurrency } from '@/lib/utils'
 import { createBooking, updateBooking, type BookingInput } from '@/lib/actions'
+import type { MenuItem } from '@/lib/supabase'
 
 const emptyForm: BookingInput = {
   client_name: '',
@@ -65,11 +66,13 @@ export function BookingForm({
   bookingId,
   initialData,
   packages = PACKAGES,
+  menuItems = [],
 }: {
   mode: 'create' | 'edit'
   bookingId?: string
   initialData?: BookingInput
   packages?: PackageOption[]
+  menuItems?: MenuItem[]
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -335,7 +338,7 @@ export function BookingForm({
 
       <section className="rounded-lg border border-border bg-card p-6 shadow-sm">
         <h2 className="mb-4 text-lg font-semibold text-foreground">Menu Selection</h2>
-        <MenuSelectionEditor value={selectedMenu} onChange={setSelectedMenu} addOns={addOns} />
+        <MenuSelectionEditor value={selectedMenu} onChange={setSelectedMenu} addOns={addOns} menuItems={menuItems} />
       </section>
 
       <section className="rounded-lg border border-border bg-card p-6 shadow-sm">

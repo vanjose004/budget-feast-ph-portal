@@ -63,3 +63,12 @@ export interface Setting {
   value: string | null
   updated_at: string
 }
+
+export interface MenuItem {
+  id: string
+  category: string
+  dish_name: string
+  is_active: boolean
+  sort_order: number
+  created_at: string
+}

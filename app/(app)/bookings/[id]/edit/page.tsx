@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { supabase, type Booking } from '@/lib/supabase'
+import { supabase, type Booking, type MenuItem } from '@/lib/supabase'
 import { BookingForm } from '@/components/bookings/booking-form'
 import type { BookingInput } from '@/lib/actions'
 import { packagesFromSettings } from '@/lib/constants'
@@ -29,15 +29,17 @@ function toBookingInput(booking: Booking): BookingInput {
 
 export default async function EditBookingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const [{ data: booking }, { data: settingsData }] = await Promise.all([
+  const [{ data: booking }, { data: settingsData }, { data: menuData }] = await Promise.all([
     supabase.from('bookings').select('*').eq('id', id).maybeSingle(),
     supabase.from('settings').select('key, value'),
+    supabase.from('menu_items').select('*').eq('is_active', true).order('sort_order'),
   ])
 
   if (!booking) notFound()
 
   const settings = Object.fromEntries((settingsData ?? []).map((s) => [s.key, s.value ?? '']))
   const packages = packagesFromSettings(settings)
+  const menuItems: MenuItem[] = menuData ?? []
 
   return (
     <>
@@ -47,7 +49,13 @@ export default async function EditBookingPage({ params }: { params: Promise<{ id
       </div>
 
       <div className="mx-auto max-w-3xl p-4 sm:p-8">
-        <BookingForm mode="edit" bookingId={id} initialData={toBookingInput(booking)} packages={packages} />
+        <BookingForm
+          mode="edit"
+          bookingId={id}
+          initialData={toBookingInput(booking)}
+          packages={packages}
+          menuItems={menuItems}
+        />
       </div>
     </>
   )
