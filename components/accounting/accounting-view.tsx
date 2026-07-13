@@ -11,6 +11,7 @@ import { AddExpenseDialog } from '@/components/accounting/add-expense-dialog'
 import { EmptyState } from '@/components/empty-state'
 import { formatCurrency } from '@/lib/utils'
 import { deleteExpense } from '@/lib/actions'
+import { expenseCategoryGroup } from '@/lib/constants'
 import type { MonthPoint, Transaction } from '@/lib/aggregate'
 
 function formatDate(dateString: string) {
@@ -110,6 +111,7 @@ export function AccountingView({
                 <tr className="border-b border-border">
                   <th className="whitespace-nowrap px-3 py-2 text-left font-semibold text-foreground">Date</th>
                   <th className="whitespace-nowrap px-3 py-2 text-left font-semibold text-foreground">Description</th>
+                  <th className="whitespace-nowrap px-3 py-2 text-left font-semibold text-foreground">Category</th>
                   <th className="whitespace-nowrap px-3 py-2 text-center font-semibold text-foreground">Type</th>
                   <th className="whitespace-nowrap px-3 py-2 text-right font-semibold text-foreground">Amount</th>
                   <th className="whitespace-nowrap px-3 py-2 text-right font-semibold text-foreground">Balance</th>
@@ -121,6 +123,17 @@ export function AccountingView({
                   <tr key={t.id} className="border-b border-border last:border-0 hover:bg-muted/30">
                     <td className="whitespace-nowrap px-3 py-2.5 text-muted-foreground">{formatDate(t.date)}</td>
                     <td className="px-3 py-2.5 text-foreground">{t.description}</td>
+                    <td className="whitespace-nowrap px-3 py-2.5 text-muted-foreground">
+                      {t.type === 'Expense' && t.category ? (
+                        <>
+                          <span className="text-xs">{expenseCategoryGroup(t.category)}</span>
+                          <span className="mx-1">&middot;</span>
+                          {t.category}
+                        </>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
                     <td className="whitespace-nowrap px-3 py-2.5 text-center">
                       <span
                         className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${

@@ -16,8 +16,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { EXPENSE_CATEGORIES } from '@/lib/constants'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { CUSTOM_EXPENSE_CATEGORY, EXPENSE_CATEGORY_GROUPS } from '@/lib/constants'
 import { addExpense } from '@/lib/actions'
 
 const today = () => new Date().toISOString().slice(0, 10)
@@ -28,12 +36,16 @@ export function AddExpenseDialog() {
   const [isPending, startTransition] = useTransition()
   const [date, setDate] = useState(today())
   const [category, setCategory] = useState('')
+  const [customCategory, setCustomCategory] = useState('')
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
+
+  const isCustom = category === CUSTOM_EXPENSE_CATEGORY
 
   function reset() {
     setDate(today())
     setCategory('')
+    setCustomCategory('')
     setDescription('')
     setAmount('')
   }
@@ -47,9 +59,16 @@ export function AddExpenseDialog() {
       return
     }
 
+    const finalCategory = isCustom ? customCategory.trim() : category
+
+    if (isCustom && !finalCategory) {
+      toast.error('Enter a name for the custom category.')
+      return
+    }
+
     startTransition(async () => {
       try {
-        await addExpense({ date, category, description, amount: numericAmount })
+        await addExpense({ date, category: finalCategory, description, amount: numericAmount })
         toast.success('Expense added.')
         reset()
         setOpen(false)
@@ -84,14 +103,32 @@ export function AddExpenseDialog() {
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
-                {EXPENSE_CATEGORIES.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
+                {EXPENSE_CATEGORY_GROUPS.map((group) => (
+                  <SelectGroup key={group.group}>
+                    <SelectLabel>{group.group}</SelectLabel>
+                    {group.categories.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
+          {isCustom && (
+            <div className="space-y-1.5">
+              <Label htmlFor="custom_category">Custom Category Name</Label>
+              <Input
+                id="custom_category"
+                value={customCategory}
+                onChange={(e) => setCustomCategory(e.target.value)}
+                placeholder="Enter category name"
+                autoFocus
+              />
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label htmlFor="expense_description">Description</Label>

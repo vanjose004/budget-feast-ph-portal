@@ -18,7 +18,51 @@ export const PAYMENT_TYPES = ['Reservation', '2nd Payment', 'Full Payment'] as c
 
 export const PAYMENT_MODES = ['Cash', 'GCash', 'Bank Transfer'] as const
 
-export const EXPENSE_CATEGORIES = ['Food Cost', 'Transport', 'Labor', 'Supplies', 'Others'] as const
+export const CUSTOM_EXPENSE_CATEGORY = 'Custom'
+
+export const EXPENSE_CATEGORY_GROUPS = [
+  {
+    group: 'Marketing',
+    categories: ['Facebook Ads', 'Printed Materials (tarpaulin, flyers)', 'Promotions & Giveaways'],
+  },
+  {
+    group: 'Food & Supplies',
+    categories: [
+      'Food Ingredients',
+      'Condiments & Spices',
+      'Packaging & Containers',
+      'Disposables (plates, cups, utensils)',
+    ],
+  },
+  {
+    group: 'Operations',
+    categories: ['Transportation / Delivery', 'Gas & Fuel', 'Parking'],
+  },
+  {
+    group: 'Labor',
+    categories: ['Waiter / Service Crew', 'Kitchen Staff', 'Extra Manpower'],
+  },
+  {
+    group: 'Equipment',
+    categories: ['Equipment Rental', 'Equipment Repair & Maintenance', 'Kitchen Supplies'],
+  },
+  {
+    group: 'Utilities',
+    categories: ['Load / Internet', 'Printing & Ink'],
+  },
+  {
+    group: 'Others',
+    categories: ['Miscellaneous', CUSTOM_EXPENSE_CATEGORY],
+  },
+] as const
+
+export function expenseCategoryGroup(category: string | null | undefined): string {
+  if (!category) return 'Others'
+  for (const group of EXPENSE_CATEGORY_GROUPS) {
+    if ((group.categories as readonly string[]).includes(category)) return group.group
+  }
+  return 'Others'
+}
 
 export interface PackageOption {
   name: string

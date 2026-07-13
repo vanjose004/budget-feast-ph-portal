@@ -25,7 +25,7 @@ export function buildTransactions(
   const expenseTx: Transaction[] = expenses.map((e) => ({
     id: `expense-${e.id}`,
     date: e.date,
-    description: e.description || e.category || 'Expense',
+    description: e.description || 'Expense',
     type: 'Expense',
     category: e.category,
     amount: e.amount ?? 0,
