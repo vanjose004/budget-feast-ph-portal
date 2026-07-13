@@ -2,6 +2,7 @@ import type { MenuItem } from '@/lib/supabase'
 import {
   MENU_CATEGORIES,
   activeMenuOptions,
+  menuCategoryPax,
   visibleMenuCategories,
   type AddOnsState,
   type SelectedMenu,
@@ -12,11 +13,13 @@ export function MenuSelectionEditor({
   onChange,
   addOns,
   menuItems,
+  pax,
 }: {
   value: SelectedMenu
   onChange: (next: SelectedMenu) => void
   addOns: AddOnsState
   menuItems: MenuItem[]
+  pax: number
 }) {
   const categories = visibleMenuCategories(addOns)
 
@@ -34,6 +37,7 @@ export function MenuSelectionEditor({
     <div className="space-y-6">
       {categories.map((category) => {
         const options = activeMenuOptions(menuItems, category.key)
+        const categoryPax = menuCategoryPax(category, addOns, pax)
 
         return (
           <div key={category.key}>
@@ -41,7 +45,7 @@ export function MenuSelectionEditor({
               <h3 className="text-sm font-semibold text-foreground">
                 {category.label}{' '}
                 <span className="font-normal text-muted-foreground">
-                  {category.required ? '(pick 1)' : '(optional)'}
+                  ({category.required ? 'pick 1' : 'optional'}) &middot; {categoryPax} pax
                 </span>
               </h3>
               {!category.required && value[category.key] && (

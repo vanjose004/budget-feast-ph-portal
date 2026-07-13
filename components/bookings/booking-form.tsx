@@ -338,7 +338,13 @@ export function BookingForm({
 
       <section className="rounded-lg border border-border bg-card p-6 shadow-sm">
         <h2 className="mb-4 text-lg font-semibold text-foreground">Menu Selection</h2>
-        <MenuSelectionEditor value={selectedMenu} onChange={setSelectedMenu} addOns={addOns} menuItems={menuItems} />
+        <MenuSelectionEditor
+          value={selectedMenu}
+          onChange={setSelectedMenu}
+          addOns={addOns}
+          menuItems={menuItems}
+          pax={form.pax ?? 0}
+        />
       </section>
 
       <section className="rounded-lg border border-border bg-card p-6 shadow-sm">

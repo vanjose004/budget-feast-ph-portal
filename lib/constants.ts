@@ -169,6 +169,7 @@ export const MENU_CATEGORIES = [
   { key: 'beef', label: 'Beef', required: true, condition: 'beef' as FoodAddOnKey },
   { key: 'fishSeafood', label: 'Fish/Seafood', required: true, condition: 'pastaChickenFish' as FoodAddOnKey },
   { key: 'vegetables', label: 'Vegetables', required: false, condition: null },
+  { key: 'soup', label: 'Soup', required: false, condition: null },
   { key: 'dessert', label: 'Dessert', required: true, condition: null },
   { key: 'drinks', label: 'Drinks', required: true, condition: null },
 ] as const
@@ -182,6 +183,15 @@ export function visibleMenuCategories(addOns: AddOnsState) {
     if (!category.condition) return true
     return (addOns.food[category.condition] || 0) > 0
   })
+}
+
+export function menuCategoryPax(
+  category: (typeof MENU_CATEGORIES)[number],
+  addOns: AddOnsState,
+  basePax: number,
+): number {
+  if (category.condition) return addOns.food[category.condition] || 0
+  return basePax
 }
 
 export function activeMenuOptions(items: MenuItem[], categoryKey: MenuCategoryKey): MenuItem[] {
